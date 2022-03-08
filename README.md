@@ -1,7 +1,13 @@
 # 一些论文笔记记录
 
+
 - [一些论文笔记记录](#一些论文笔记记录)
   - [常规命名实体识别](#常规命名实体识别)
+    - [**Bidirectional LSTM-CRF Models for Sequence Tagging(ACL 2015)**](#bidirectional-lstm-crf-models-for-sequence-taggingacl-2015)
+    - [**Lattice LSTM：Chinese NER Using Lattice LSTM. (ACL2018)**](#lattice-lstmchinese-ner-using-lattice-lstm-acl2018)
+    - [**CGN:Leverage Lexical Knowledge for Chinese Named Entity Recognition via Collaborative Graph Network (EMNLP 2019)**](#cgnleverage-lexical-knowledge-for-chinese-named-entity-recognition-via-collaborative-graph-network-emnlp-2019)
+    - [**Lexicon-Based Graph Neural Network for Chinese NER. (EMNLP2019)**](#lexicon-based-graph-neural-network-for-chinese-ner-emnlp2019)
+    - [**Simplify the Usage of Lexicon in Chinese NER (ACL2020）**](#simplify-the-usage-of-lexicon-in-chinese-ner-acl2020)
   - [嵌套和不连续命名实体识别](#嵌套和不连续命名实体识别)
     - [**Boundary Enhanced Neural Span Classification for Nested Named Entity Recognition**. **(AAAI2020)**](#boundary-enhanced-neural-span-classification-for-nested-named-entity-recognition-aaai2020)
     - [**A Span-Based Model for Joint Overlapped and Discontinuous Named Entity Recognition. (ACL2021)**](#a-span-based-model-for-joint-overlapped-and-discontinuous-named-entity-recognition-acl2021)
@@ -16,7 +22,6 @@
   - [实体和关系联合抽取](#实体和关系联合抽取)
     - [**TPLinker:Single-stage Joint Extraction of Entities and Relations Through Token Pair Linking. CLONG2020.**](#tplinkersingle-stage-joint-extraction-of-entities-and-relations-through-token-pair-linking-clong2020)
   - [其他](#其他)
-
 
 
 ## 常规命名实体识别
