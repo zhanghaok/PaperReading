@@ -75,9 +75,13 @@ BD是边界检测模块，BD模块的输出是一系列BIE标签，将E标签和
 
 ### **BERT-Biffine:Named Entity Recognition as Dependency Parsing.(ACL2020)**
 
-* 用依赖解析的方式去进行命名实体识别
+* 用句法依赖解析的方式去进行命名实体识别
 
+传统NER任务大多为Flat NER，。NER的研究通常只关注平面实体(平面NER)，忽略了实体引用可以嵌套的事实，其将biffine机制引入NER，遍历整个句子，模型对每个span的起点和终点打分以得到结果。仿射机制被依赖解析任务引入了NLP，这篇文章即用仿射变换做nested NER识别。
 
+在句法分析中，biaffine的模型对每个token预测出一个head，然后对head-child pairs指定关系。那么在NER任务中，就是把实体抽取任务看成识别start和end索引的问题，同时对这个start和end之间的形成的span赋予实体类型。
+
+具体的：
 
 
 
