@@ -21,6 +21,107 @@
 
 ## 常规命名实体识别
 
+### **Bidirectional LSTM-CRF Models for Sequence Tagging(ACL 2015)**
+
+>这篇经典论文首次将LSTM-CRF结构用到了NER上，主要介绍了用于序列标注的LSTM网络，BiLSTM网络、CRF网络、LSTM-CRF网络、BiLSTM-CRF网络，比比较了他们在序列标注任务（POS,Chunking和NER）上的性能，重点介绍了BiLSTM-CRF网络。
+
+概括起来，BiLSTM-CRF模型的有点有以下几点：
+
+- 可以有效利用输入的前向和后向特征信息，因为使用了BiLSTM模型。
+- 可以有效利用句子级别标记信息，因为使用了CRF层。
+- 模型具有稳定性，对词向量和人工特征没有太大的依赖性。
+
+特征的选择也是一个很繁琐的工作，作者选择了一系列**拼写特征，N-gram特征和Word Embedding特征**，作者还发现将拼写特征和上下文特征直接与输出层连接，不仅可以加速训练而且效果与之前一致。
+
+<img src="./imgs/BiLSTM-CRF.jpg" alt="img" style="zoom:150%;" />
+
+模型如上图，CRF层有一个独立于位置的状态转移矩阵的参数**A**,就像BiLSTM能利用上下文的特征一样，CRF能利用上下文的标签来预测当前状态的标签，输入句子$$
+[x]_{1}^{T}
+$$的标注序列$$
+[i]_{1}^{T}
+$$的得分由下式给出：
+$$
+s\left([x]_{1}^{T},[i]_{1}^{T}, \tilde{\theta}\right)=\sum_{t=1}^{T}\left([A]_{[i]_{t-1},[i]_{t}}+\left[f_{\theta}\right]_{[i]_{t}, t}\right)
+$$
+其中$$
+\left[f_{\theta}\right]_{[i]_{t}, t}
+$$表示在模型参数为$$\theta$$的条件下输入句子第t个词的第i个标注类型的得分，最后可以得到一个分数矩阵$$
+f_{\theta}\left([x]_{1}^{T}\right)
+$$，这就是BiLSTM的输出。而参数$$
+[A]_{i, j}
+$$表示标注状态从i转移到j的转移分数，对于A的计算，可以采用动态规划来解决。将两个分数矩阵加起来，这样，我们就能够得到得分最高的标注序列了。
+
+### **Lattice LSTM：Chinese NER Using Lattice LSTM. (ACL2018)**
+
+> 利用词典知识来提高中文NER的性能。
+
+本文提出了一种lattice-structured LSTM 模型，可译为网格结构LSTM,其编码了序列中输入的字符信息和潜在词汇信息，对比以前只基于单个字的输入表征，这里可以明确的利用词汇信息，并且避免了实体分割错误的情况。门控循环神经网络是的模型能选择最有效字符和词汇来完成NER任务。
+
+传统NER痛点1：实体分割位置错误时，会级联到后面的实体类型分类；即segment error会向后传播，使得NER产生致命错误。开放域对该问题更加忌惮。
+
+解决方案：在输入的一段话中，将内部存在的词汇信息整合到单个字信息上面；该模型整体基于Lattice LSTM+CRF.
+
+<img src="https://pic1.zhimg.com/v2-8a26c5bda4b4ff7c5004f74d6e72df20_b.jpg" alt="img" style="zoom:150%;" />
+
+
+
+如图1所示，单词序列“长江大桥”,“长江”,“大桥”能消除潜在的错误实体，例如“江大桥”。
+
+因为网格划分成指数增长，所以这里利用lattice LSTM结构自动控制信息流，对输入序列从始至末。图示说明，如下：
+
+<img src="https://pic1.zhimg.com/v2-d7b3cf3f34f968ce74f3bcb9185a9bfc_b.jpg" alt="img" style="zoom:150%;" />
+
+
+
+解释：门控cells被用来动态路由信息流，在不同路径上整合给每个字符（汉字）；训练的过程中，模型能自动发现有用的词汇（比如：南京市，长江大桥）
+
+
+
+### **CGN:Leverage Lexical Knowledge for Chinese Named Entity Recognition via Collaborative Graph Network (EMNLP 2019)**
+
+词边界信息的缺乏被认为是中文NER的主要障碍之一。例如Lattice LSTM运用了词边界的信息，但是当涉及到自匹配词汇（self-matched lexical words）和最近语境词汇（the nearest contextual lexical words）时，将词汇知识融入汉语NER任务仍然面临挑战。
+
+- 自匹配词汇：A self-matched lexical word of a character is the lexical word that contains this character 。北京机场” 和 “机场” 都是 “机”的自匹配词。  
+- 最近语境词汇：The nearest contextual lexical word of a character is the word that matches the nearest past or future subsequence in the given sentence of this character 。希尔*顿*离开北京机场了” 
+
+本文提出了一个协作图网络来解决这些挑战，在不同数据集上的实验表明，本文的模型不仅优于最先进的(SOTA)结果，而且速度比SOTA模型快6到15倍。
+
+贡献点总结：
+
+- 提出一个协作图网络来融合词典信息。  
+- 为了解决上面的2个挑战，作者提出了3个word-character交互子图来捕获不同的词典知识。  
+- 在性能方面优于SOTA模型，计算效率方面比SOTA模型快6-15倍  。
+
+三种交互子图：C-graph、T-graph、L-graph。
+
+**C-graph：**
+
+<img src="./imgs/C-graph.png" alt="image-20220308211110396" style="zoom:150%;" />
+
+**T-graph：**
+
+<img src="./imgs/T-graph.png" alt="image-20220308211226534" style="zoom:150%;" />
+
+**L-graph：**
+
+<img src="./imgs/L-graph.png" alt="image-20220308211320153" style="zoom:150%;" />
+
+模型结构：
+
+![image-20220308211434345](./imgs/CGN.png)
+
+### **Lexicon-Based Graph Neural Network for Chinese NER. (EMNLP2019)**
+
+> 图神经网络解决中文NER问题
+
+
+
+### **Simplify the Usage of Lexicon in Chinese NER (ACL2020）**
+
+> 利用词典知识提高中文NER的性能。
+
+https://www.zhihu.com/search?type=content&q=Simplify%20the%20Usage%20of%20Lexicon%20in%20Chinese%20NER
+
 ## 嵌套和不连续命名实体识别
 
 ### **Boundary Enhanced Neural Span Classification for Nested Named Entity Recognition**. **(AAAI2020)**
