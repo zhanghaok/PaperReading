@@ -68,9 +68,8 @@ BD是边界检测模块，BD模块的输出是一系列BIE标签，将E标签和
 
 为了解决这个问题，我们提出了一个新的嵌套NER模型HIT。我们提出的HIT模型利用了与（嵌套的）命名实体相关的两个关键属性，包括（1）显式边界标记和（2）边界内标记之间的紧密内部连接。具体来说，我们设计了（1）基于多头自注意机制的头尾检测器和双仿射分类器来检测边界token，以及（2）基于传统序列标记方法的令牌token标记器来表征边界内的内部令牌连接。
 
-下图描述了我们模型的总体架构。HIT包含三个主要组件，包括头尾检测器、token交互标记器和区域分类器。对于每个给定的句子$${x}=\left\{w_{1}, w_{2}, \ldots, w_{m}\right\}$$，其中m是句子的长度，HIT首先将句子x映射到token表示序列 。$$
-\mathbf{x}=\left\{\mathbf{w}_{1}, \mathbf{w}_{2}, \ldots, \mathbf{w}_{m}\right\}
-$$然后，表示序列**x**被馈送到头尾检测器，以预测每对token是否为实体的头尾。同时，token交互标记器用于根据上下文捕获相邻token之间的内部连接，这表明当前token之前或之后的token是否属于实体。最后，利用区域分类器将头尾检测器和token交互标记器相结合，完成实体识别。
+下图描述了我们模型的总体架构。HIT包含三个主要组件，包括头尾检测器、token交互标记器和区域分类器。对于每个给定的句子${x}=\left\{w_{1}, w_{2}, \ldots, w_{m}\right\}$，其中m是句子的长度，HIT首先将句子x映射到token表示序列 。$\mathbf{x}=\left\{\mathbf{w}_{1}, \mathbf{w}_{2}, \ldots, \mathbf{w}_{m}\right\}$ 
+然后，表示序列x被馈送到头尾检测器，以预测每对token是否为实体的头尾。同时，token交互标记器用于根据上下文捕获相邻token之间的内部连接，这表明当前token之前或之后的token是否属于实体。最后，利用区域分类器将头尾检测器和token交互标记器相结合，完成实体识别。
 
 <img src="./imgs/HIT.png" style="zoom:150%;" />
 
@@ -112,17 +111,17 @@ TPLinker是实体关系抽取的新范式，巧妙设计了统一的联合抽取
 
 TPLinker其实就是通过链接(linking)3种类型的Span矩阵来实现的，为方便起见，论文作者将3种标注方式画到一个图里了，如上图所示（记关系类别总数为R个）：
 
-**1.紫色标注**：EH to ET，表示实体的头尾关系，是1个$$
+**1.紫色标注**：EH to ET，表示实体的头尾关系，是1个$
 N * N
-$$矩阵；如两个实体：New York City:M(New, City) =1; De Blasio:M(De, Blasio) =1。
+$矩阵；如两个实体：New York City:M(New, City) =1; De Blasio:M(De, Blasio) =1。
 
-**2.红色标注**：SH to OH，表示subject和object的头部token间的关系，是$$
+**2.红色标注**：SH to OH，表示subject和object的头部token间的关系，是$
 \underline{R} \text { 个 } N * N
-$$矩阵；如三元组(New York City, mayor,De Blasio):M(New, De)=1。
+$矩阵；如三元组(New York City, mayor,De Blasio):M(New, De)=1。
 
-**3.蓝色标注**：ST to OT，表示subject和object的尾部token间的关系，是$$
+**3.蓝色标注**：ST to OT，表示subject和object的尾部token间的关系，是$
 \underline{R} \text { 个 } N * N
-$$矩阵；如三元组(New York City, mayor,De Blasio):M(City, Blasio)=1。
+$矩阵；如三元组(New York City, mayor,De Blasio):M(City, Blasio)=1。
 
 因此，可以得到TPLinker共有$\underline{2R+1}$个矩阵。值得注意的是：为防止稀疏计算，下三角矩阵不参与计算；虽然实体标注不会存在于下三角矩阵种，但关系标注是会存在的。
 
