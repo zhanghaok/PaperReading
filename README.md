@@ -124,7 +124,7 @@ $$矩阵；如三元组(New York City, mayor,De Blasio):M(New, De)=1。
 \underline{R} \text { 个 } N * N
 $$矩阵；如三元组(New York City, mayor,De Blasio):M(City, Blasio)=1。
 
-因此，可以得到TPLinker共有$$\underline{2R+1}$$个矩阵。值得注意的是：为防止稀疏计算，下三角矩阵不参与计算；虽然实体标注不会存在于下三角矩阵种，但关系标注是会存在的。
+因此，可以得到TPLinker共有$\underline{2R+1}$个矩阵。值得注意的是：为防止稀疏计算，下三角矩阵不参与计算；虽然实体标注不会存在于下三角矩阵种，但关系标注是会存在的。
 
 为此，论文采取转换操作是：如果关系存在于下三角，则将其转置到上三角，并有“标记1”变为“标记2”。
 
@@ -134,9 +134,9 @@ $$矩阵；如三元组(New York City, mayor,De Blasio):M(City, Blasio)=1。
 
 上图给出了一个完整的标注和编码示意图，标记有“0、1、2”三种。
 
-编码部分实际上是将原始的Span矩阵会展开为一个$$
+编码部分实际上是将原始的Span矩阵会展开为一个$
 \frac{N *(N+1)}{2}
-$$序列进行编码，也就是将token pair的每一个token编码拼接在一起。
+$序列进行编码，也就是将token pair的每一个token编码拼接在一起。
 
 TPLinker的解码过程为：
 
