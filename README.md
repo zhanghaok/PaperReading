@@ -167,6 +167,31 @@ $表示标注状态从i转移到j的转移分数，对于A的计算，可以采�
 
 https://www.zhihu.com/search?type=content&q=Simplify%20the%20Usage%20of%20Lexicon%20in%20Chinese%20NER
 
+**现象及问题**：最近有很多工作试着通过使用词典来提高Chinese NER的性能。作为代表[Lattice-LSTM]在多种公共Chinese NER数据集上获得新的benchmark。然而[LAttice-LSTM]有一个复杂的模型结构，这限制了它在大多需要实时响应的工业领域的应用。Lattice—LSTM模型过于复杂，为了加入词典信息而对不相邻字符加了很多边，使得模型训练和预测速度变慢。此外，难以将Lattice-LSTM转移到用于特定任务的其他神经架构，比如CNN，Transformer。
+
+本文提出一种简单但有效的方法来把词汇信息整合到Char Embedding中。这种方法避免设计一个复杂的句字模型结构，对于许多NER模型，它只需要对字符表示做简单的调节就能引入词典信息。
+
+**背景知识**：
+
+- Softword Feature:Softword技术一开始用于将分词信息合并到下游任务去，它通过添加该字符对应的分词label embedding信息来增强char embedding。
+- [Lattice-LSTM](https://www.zhihu.com/search?type=content&q=Simplify%20the%20Usage%20of%20Lexicon%20in%20Chinese%20NER%20(ACL2020%EF%BC%89)
+
+**方法**：文主要在保留Lattice-LSTM优点条件下，解决它的缺点。因此，本文提出一种简单高效的方法，称为SoftLexicon。该方法只需要简单调节NER的char表示层，其他结构与常规NER一样。下面是整个模型的框架图。
+
+<img src="./imgs/SLNER.png" alt="image-20220309204654993"  />
+
+
+
+算法分为2个步骤：
+
+- 输入序列的每个字符映射到一个密集向量中；
+- 构建软词典特征并将其添加到每个字符的表示中；
+- 这些增强的字符表示被放入序列建模层和CRF层，以获得最终的预测
+
+**算法解释**：[算法解释](https://zhuanlan.zhihu.com/p/343854218)
+
+
+
 ## 嵌套和不连续命名实体识别
 
 ### **Boundary Enhanced Neural Span Classification for Nested Named Entity Recognition**. **(AAAI2020)**
@@ -330,6 +355,8 @@ TPLinker的解码过程为：
 由于关系live in与born in一样，所以我们最终可得到5个三元组：
 
 (New York City, mayor, De Blasio), (De Blasio, born in, New York), (De Blasio, born in, New York City), (De Blasio, live in, New York), (De Blasio, live in, New York City)
+
+### CasRel:A Novel Cascade Binary Tagging Framework for Relational Triple Extractio (ACl2020)
 
 
 
