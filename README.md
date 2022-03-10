@@ -30,6 +30,8 @@
 
 >这篇经典论文首次将LSTM-CRF结构用到了NER上，主要介绍了用于序列标注的LSTM网络，BiLSTM网络、CRF网络、LSTM-CRF网络、BiLSTM-CRF网络，比比较了他们在序列标注任务（POS,Chunking和NER）上的性能，重点介绍了BiLSTM-CRF网络。
 
+另一篇笔记：[笔记](https://zhuanlan.zhihu.com/p/119254570)
+
 概括起来，BiLSTM-CRF模型的有点有以下几点：
 
 - 可以有效利用输入的前向和后向特征信息，因为使用了BiLSTM模型。
@@ -39,6 +41,8 @@
 特征的选择也是一个很繁琐的工作，作者选择了一系列**拼写特征，N-gram特征和Word Embedding特征**，作者还发现将拼写特征和上下文特征直接与输出层连接，不仅可以加速训练而且效果与之前一致。
 
 <img src="./imgs/BiLSTM-CRF.jpg" alt="img" style="zoom:150%;" />
+
+![img](https://pic3.zhimg.com/v2-a3df9c84e2dee0ed57b0eacd83b3ddc2_b.jpg)
 
 模型如上图，CRF层有一个独立于位置的状态转移矩阵的参数**A**,就像BiLSTM能利用上下文的特征一样，CRF能利用上下文的标签来预测当前状态的标签，输入句子$
 [x]_{1}^{T}
@@ -262,13 +266,27 @@ BD是边界检测模块，BD模块的输出是一系列BIE标签，将E标签和
 
 ### **BERT-Biffine:Named Entity Recognition as Dependency Parsing.(ACL2020)**
 
+> 知乎阅读笔记：[笔记](https://www.zhihu.com/search?type=content&q=Named%20Entity%20Recognition%20as%20Dependency%20Parsing)
+
 * 用句法依赖解析的方式去进行命名实体识别
 
 传统NER任务大多为Flat NER，。NER的研究通常只关注平面实体(平面NER)，忽略了实体引用可以嵌套的事实，其将biffine机制引入NER，遍历整个句子，模型对每个span的起点和终点打分以得到结果。仿射机制被依赖解析任务引入了NLP，这篇文章即用仿射变换做nested NER识别。
 
 在句法分析中，biaffine的模型对每个token预测出一个head，然后对head-child pairs指定关系。那么在NER任务中，就是把实体抽取任务看成识别start和end索引的问题，同时对这个start和end之间的形成的span赋予实体类型。
 
-具体的：
+具体的：模型受依赖解析模型的启发，我们使用单词嵌入和字符嵌入作为输入，并将输出输入到BiLSTM中，最后输入双仿射分类器。
+
+![image-20220309210247857](./imgs/image-20220309210247857.png)
+
+对于单词的编码采用BERT，对于字符的编码采用CNN，最后将这两个嵌入表示拼接起来送入BiLSTM中。在BiLSTM获得单词表示后，我们应用两个独立的FFNN为span的开始token和结束token建立不同的表示。
+
+
+
+**模型细节图：**
+
+<img src="https://pic3.zhimg.com/80/v2-7c2ea2a221998339cbc995e08043dd7a_720w.jpg" alt="img"  />
+
+最后的性能可以和BERT-CRF比拟。
 
 
 
@@ -358,11 +376,42 @@ TPLinker的解码过程为：
 
 ### CasRel:A Novel Cascade Binary Tagging Framework for Relational Triple Extractio (ACl2020)
 
+> 知乎阅读笔记：[专栏笔记](https://zhuanlan.zhihu.com/p/476987926)
+
+**背景**：
+
+关系三元组抽取（RTE）和关系分类是两个概念。RC是在 **给定实体对和输入文本** 的情况下，抽取出实体对在句子中所表达的关系；RTE则是在 **仅给定输入文本** 的情况下，抽取出包含在文本中的所有可能的关系三元组。
+
+本文针对重叠三元组问题：不同的三元组之间共享相同实体。作者以一种新的视角审视重叠三元组问题，并且提出一种 **端到端的级联二元标记框架 end-to-end cascade binary tagging framework (CASREL)** 。
+
+关系分类的缺点：①类别分布高度不平衡（highly imbalanced），很多实体对之间不存在关系，两两进行匹配会产生大量的负样本。②当同一对实体之间有多个关系时（重叠三元组问题），使用关系分类会让问题变成一个 **不平衡多分类问题**，严重混淆分类器。③果没有足够的训练实例，分类器就很难判断实体参与的关系。
+
+**本文思想**：
+
+该框架并没有使用传统的关系分类来判别实体间的关系，而是将关系看作一个将subject映射到object的函数。
+
+传统的关系分类器：relation classifier：$f(s, o) \rightarrow r$
+
+本文的 关系特定的尾实体标注器 relation-specific taggers：$f_{r}(s) \rightarrow O$
+
+- 每一个关系特定的尾实体标注器 都能在 特定关系下 将subject 映射到 所有正确的 boject
+- 或者不返回任何object，而是返回null，表示与给定subject和relation时，不存在三元组。
+
+采用这种思想，关系抽取可以分为2步：
+
+​	1.识别所有可能的subject
+
+​	2.将每一个subject放入关系特定的尾实体标注器中，来同时识别所有可能的 relation 和相应的 object 。
+
+**贡献**：
+
+1. 引入一个新的视角重新审视关系抽取问题，设计一个通用算法框架来解决重叠三元组问题。
+2. 将上述框架实例化为一个基于Transformer编码器的 **级联二元标记模型** ，这使得该模型能够将新的标记框架的能力与预训练模型的先验知识结合起来。
+3. 该框架的性能明显优于最新的方法，在两个数据集上分别获得了 **17.5%** 和 **30.2%** 的F1明显提高。
 
 
 
-
-
+![image-20220310125307752](./imgs/image-20220310125307752.png)
 
 ## 其他
 
