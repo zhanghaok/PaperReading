@@ -1,6 +1,5 @@
 # 一些论文笔记记录
 
-
 - [一些论文笔记记录](#一些论文笔记记录)
   - [常规命名实体识别](#常规命名实体识别)
     - [**Bidirectional LSTM-CRF Models for Sequence Tagging(ACL 2015)**](#bidirectional-lstm-crf-models-for-sequence-taggingacl-2015)
@@ -21,6 +20,8 @@
     - [**W2NER**：**Unified Named Entity Recognition as Word-Word Relation Classification AAAI2022.**](#w2nerunified-named-entity-recognition-as-word-word-relation-classification-aaai2022)
   - [实体和关系联合抽取](#实体和关系联合抽取)
     - [**TPLinker:Single-stage Joint Extraction of Entities and Relations Through Token Pair Linking. CLONG2020.**](#tplinkersingle-stage-joint-extraction-of-entities-and-relations-through-token-pair-linking-clong2020)
+    - [CasRel:A Novel Cascade Binary Tagging Framework for Relational Triple Extractio (ACl2020)](#casrela-novel-cascade-binary-tagging-framework-for-relational-triple-extractio-acl2020)
+    - [OneRel: Joint Entity and Relation Extraction with One Module in One Step (AAAI2022)](#onerel-joint-entity-and-relation-extraction-with-one-module-in-one-step-aaai2022)
   - [其他](#其他)
 
 
@@ -412,6 +413,47 @@ TPLinker的解码过程为：
 
 
 ![image-20220310125307752](./imgs/image-20220310125307752.png)
+
+### OneRel: Joint Entity and Relation Extraction with One Module in One Step (AAAI2022)
+
+摘自JayJay知乎专栏：https://zhuanlan.zhihu.com/p/480322068
+
+> 本文认为当前众多的实体关系联合抽取方法需要分解为多个模块(module)建模、需要多步解码，这种范式有一个短板：**忽略了三元组的三个元素是相互依存且不可分割的**，并且**存在级联误差误差和冗余计算**。
+>
+> 而该论文的核心创新点就是：提出**单模块、单步解码**的实体关系联合抽取方法（称之为**OneRel**），直接识别三元组、更好捕获三元组间的相互依赖。
+
+![image-20220314195219829](./imgs/image-20220314195219829.png)
+
+正如上图所示，论文总结概括了不同的实体关系联合抽取的建模方式：
+
+- **Multi‐Module Multi‐Step（多模块建模、多步解码）**：实体和关系分别建模，通过step-by-step方式串行多步解码。由于上一步的误差会影响下一步的抽取，因此会存在级联误差。
+- **Multi‐Module One‐Step（多模块建模、单步解码）**：实体和关系分别建模，通过并行单步解码，最后再组装成一个三元组。但会导致冗余计算、在组装三元组的时候会存在错误。
+- **One‐Module One‐Step（单模块建模、单步解码）**：用单个模块直接建模（头实体、关系、尾实体）三元组。
+
+> 然而，单个模块可以直接识别三元组吗？这个JayJay存疑，先暂时不表，下文再讨论。
+
+在Tagging方式上，OneRel采取了关系特定的角标记策略（Rel-Spec Horns Tagging），其实仍是token-pair，只需要4个标记类型就可以建模三元组（如下图所示）：
+
+- **HB-TB**：头实体的开始token 与 尾实体的开始token 进行连接。
+- **HB-TE**：头实体的开始token 与 尾实体的结束token 进行连接。
+- **HE-TE**：头实体的结束token 与 尾实体的结束token 进行连接。
+- -：不存在连接关系。
+
+![image-20220314195352629](./imgs/image-20220314195352629.png)
+
+如上图所示，在解码的时候，通过“HB-TE”和“HE-TE”可识别头实体“New York State”，通过“HB-TB”和“HB-TE”可识别尾实体“New York City”，两个实体可以直接关联，最终构建三元组。
+
+![image-20220314195457772](./imgs/image-20220314195457772.png)
+
+上图所示，OneRel在实体关系数据集NYT和WebNLG上取得了当前SOTA。
+
+读完本篇paper，可以发现：OneRel所提出的“One Module”方式不像TPLinker分别设立实体Module和关系Module，而是用“单个模块”识别头尾实体三元组。
+
+不过，JayJay认为：**OneRel的单模块建模方式不是直接识别头尾实体三元组，仍然是头尾实体的token维度的关联关系**。因此，还是需要通过decoding继续组装成一个三元组。
+
+> 单模块建模方式不是直接识别头尾实体三元组，如果按照论文给出的示例 (Bionico, Country, Mexico)一样，当实体退化为单个token或word，就可以直接识别三元组了。
+
+JayJay还是觉得：**OneRel与TPLinker没有本质区别**。
 
 ## 其他
 
