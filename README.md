@@ -18,11 +18,13 @@
     - [**BERT-Biffine:Named Entity Recognition as Dependency Parsing.(ACL2020)**](#bert-biffinenamed-entity-recognition-as-dependency-parsingacl2020)
   - [统一命名实体识别](#统一命名实体识别)
     - [**W2NER**：**Unified Named Entity Recognition as Word-Word Relation Classification AAAI2022.**](#w2nerunified-named-entity-recognition-as-word-word-relation-classification-aaai2022)
-  - [实体和关系联合抽取](#实体和关系联合抽取)
+  - [实体和关系联合抽取&关系抽取](#实体和关系联合抽取关系抽取)
     - [**TPLinker:Single-stage Joint Extraction of Entities and Relations Through Token Pair Linking. CLONG2020.**](#tplinkersingle-stage-joint-extraction-of-entities-and-relations-through-token-pair-linking-clong2020)
     - [CasRel:A Novel Cascade Binary Tagging Framework for Relational Triple Extractio (ACl2020)](#casrela-novel-cascade-binary-tagging-framework-for-relational-triple-extractio-acl2020)
     - [OneRel: Joint Entity and Relation Extraction with One Module in One Step (AAAI2022)](#onerel-joint-entity-and-relation-extraction-with-one-module-in-one-step-aaai2022)
+    - [R-BERT:Enriching Pre-trained Language Model with Entity Information for Relation Classification  (ACL2019)](#r-bertenriching-pre-trained-language-model-with-entity-information-for-relation-classification--acl2019)
   - [其他](#其他)
+
 
 
 ## 常规命名实体识别
@@ -301,7 +303,7 @@ BD是边界检测模块，BD模块的输出是一系列BIE标签，将E标签和
 
 <img src="./imgs/w2ner.png" style="zoom:150%;" />
 
-## 实体和关系联合抽取
+## 实体和关系联合抽取&关系抽取
 
 ### **TPLinker:Single-stage Joint Extraction of Entities and Relations Through Token Pair Linking. CLONG2020.**
 
@@ -454,6 +456,69 @@ TPLinker的解码过程为：
 > 单模块建模方式不是直接识别头尾实体三元组，如果按照论文给出的示例 (Bionico, Country, Mexico)一样，当实体退化为单个token或word，就可以直接识别三元组了。
 
 JayJay还是觉得：**OneRel与TPLinker没有本质区别**。
+
+### R-BERT:Enriching Pre-trained Language Model with Entity Information for Relation Classification  (ACL2019)
+
+> 本文要解决的问题是什么？
+>
+> 尝试使用预训练模型BERT到句子级别关系抽取任务上。
+
+**主要贡献**
+
+- 率先将 BERT 用在了关系抽取任务上, 探索了实体和实体位置在预训练模型中的结合方式。
+- 可以通过在实体前后加标识符得方式表明实体位置, 代替传统位置向量得做法.论文也证实了这种方法得有效性。
+
+**模型概述**
+
+![image-20220322223307072](./imgs/image-20220322223307072.png)
+
+模型整体分为几个部分: 输入, BERT, 输出整合.
+
+**输入**：假设输入的句子为: "The kitchen is the last renovated part of the house .", 在送入 BERT 之前,它将受到以下处理:
+
+- 开头添加CLS 符号: "[CLS] The kitchen is the last renovated part of the house ."
+- 第一个实体得前后添加 “\$” 符号: "[CLS] The \$ kitchen \$ is the last renovated part of the house ."
+- 第二个实体前后添加 # 符号: "[CLS] The \$ kitchen \$ is the last renovated part of the # house # ."
+
+两个实体前后添加特殊符号的目的是标识两个实体, 让模型能够知道这两个词的特殊性,相当于变相指出两个实体得位置. 此时输入的维度为[batch size n, max_length m, hidden size d]
+
+**BERT:**
+
+这里对 BERT 就不做过多的介绍, 直接看它的输出, 这里需要用到它的 CLS 位置输出和序列输出. [CLS] 位置的输出可以作为句子的向量表示, 记作 ![[公式]](https://www.zhihu.com/equation?tex=H_%7B0%7D) , 它的维度是 [n, d]. 它经过 tanh 激活和线性变换后得到, ![[公式]](https://www.zhihu.com/equation?tex=W_%7B0%7D) 的维度是 [d, d], 因此 ![[公式]](https://www.zhihu.com/equation?tex=H%5E%7B%27%7D) 的维度就是[n, d]
+
+![[公式]](https://www.zhihu.com/equation?tex=H%5E%7B%27%7D_%7B0%7D+%3D+W_%7B0%7D%28tanh%28H_%7B0%7D%29%29+%2B+b_%7B0%7D+)
+
+除了利用句向量之外, 论文还结合了两个实体得向量. 实体向量通过计算BERT 输出的实体各个字向量的平均得到, 假设BERT 输出的 实体1得开始和终止向量为 ![[公式]](https://www.zhihu.com/equation?tex=H_%7Bi%7D) , ![[公式]](https://www.zhihu.com/equation?tex=H_%7Bj%7D) . 实体2得为 ![[公式]](https://www.zhihu.com/equation?tex=H_%7Bk%7D) , ![[公式]](https://www.zhihu.com/equation?tex=H_%7Bm%7D) . 那么实体1 和 2得向量表示就是:
+
+![[公式]](https://www.zhihu.com/equation?tex=+e1+%3D+%5Cfrac%7B1%7D%7Bj-i%2B1%7D%5Csum_%7Bt%3Di%7D%5E%7Bj%7DH_%7Bt%7D+)
+
+![[公式]](https://www.zhihu.com/equation?tex=e2+%3D+%5Cfrac%7B1%7D%7Bm-k%2B1%7D%5Csum_%7Bt%3Dk%7D%5E%7Bm%7DH_%7Bt%7D+)
+
+维度为 [n, d], 得到的实体向量也需要经过激活函数和线性层, ![[公式]](https://www.zhihu.com/equation?tex=W_%7B1%7D) 和 ![[公式]](https://www.zhihu.com/equation?tex=W_%7B2%7D) 的维度都是 [d, d]:
+
+![[公式]](https://www.zhihu.com/equation?tex=+H%5E%7B%27%7D_%7B1%7D+%3D+W_%7B1%7De_%7B1%7D+%2B+b_%7B1%7D+)
+
+![[公式]](https://www.zhihu.com/equation?tex=+H%5E%7B%27%7D_%7B2%7D+%3D+W_%7B2%7De_%7B2%7D+%2B+b_%7B2%7D)
+
+因此它俩得维度也都是 [n, d]. 最后把 ![[公式]](https://www.zhihu.com/equation?tex=H%5E%7B%27%7D_%7B0%7D%2C+H%5E%7B%27%7D_%7B1%7D%2C+H%5E%7B%27%7D_%7B2%7D) 连接起来得到一个综合向量[n, 3d] 输入到线性层并做softmax 分类.
+
+![[公式]](https://www.zhihu.com/equation?tex=+h%5E%7B%27%27%7D+%3D+W_%7B3%7D%5Bconcat%28H%5E%7B%27%7D_%7B0%7D%2C+H%5E%7B%27%7D_%7B1%7D%2C+H%5E%7B%27%7D_%7B2%7D%29%5D+%2B+b_%7B3%7D+)
+
+![[公式]](https://www.zhihu.com/equation?tex=p+%3D+softmax%28h%5E%7B%27%27%7D%29)
+
+其中 ![[公式]](https://www.zhihu.com/equation?tex=W_%7B3%7D) 的维度是 [关系数量 L, 3d], 因此 ![[公式]](https://www.zhihu.com/equation?tex=h%5E%7B%27%27%7D) 得维度是 [n, L]. 经过得到了每句话得关系类别概率分布,完成分类.
+
+**效果**：在 SemEval-2010 Task 8 dataset 上做了实验, 实验证明 R-BERT 比其他的模型如CR-CNN, ATTENTION- CNN 等效果都要好. 除此之外,作者的实验还表明:
+
+- 移除实体前后得标识符会使模型得 F1 从 89.25% 降至 87.98%. 说明标识符确实可以帮助模型提供实体信息
+- 在 BERT 输出层仅利用 CLS 得句子向量而不利用实体向量会使得模型 F1 降至 87.98%(和标识符得影响差不多), 说明想办法主动明确实体信息对模型是有帮助的。
+
+**个人启发**
+
+- 在 BERT 里采用这种方法标注实体位置确实是第一次见, 而且还蛮有效得, 之前一直想直接给 BERT 位置向量, 是不是可以 PK 一下或者结合一下?
+- 想办法明确实体给模型看对模型是有好处得。
+
+
 
 ## 其他
 
