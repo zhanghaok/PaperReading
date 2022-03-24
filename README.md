@@ -348,6 +348,14 @@ BD是边界检测模块，BD模块的输出是一系列BIE标签，将E标签和
 
 
 
+
+
+## 小样本（低资源）实体识别
+
+### Example-Based Named Entity Recognition(*2020)
+
+
+
 ## 实体和关系联合抽取&关系抽取
 
 ### **TPLinker:Single-stage Joint Extraction of Entities and Relations Through Token Pair Linking. CLONG2020.**
@@ -563,9 +571,119 @@ JayJay还是觉得：**OneRel与TPLinker没有本质区别**。
 - 在 BERT 里采用这种方法标注实体位置确实是第一次见, 而且还蛮有效得, 之前一直想直接给 BERT 位置向量, 是不是可以 PK 一下或者结合一下?
 - 想办法明确实体给模型看对模型是有好处得。
 
+### A Frustratingly Easy Approach for Joint Entity and Relation Extraction(NNACL2021)
 
+> 在NLP研究人员的印象中，联合（包括①联合解码structed predicition②共享参数shared representation）的方法一般优于pipeline的方法，这篇文章打破一贯的印象，本文采用pipeline的方法在多个数据集上效果都优于joint，pipeline的做法是首先识别句子中所有的实体，然后遍历每个实体对，判断每个实体对之间的关系（包括无关系）
+
+**模型**
+
+- **实体识别**：本文采用标准的基于span的模型进行实体识别，BERT->Span表示->MLP
+- **关系模型**：现有的方法在预测两个span的关系的时候，重用了span的表示（在实体识别的时候的表示），但我们认为，这些表示只能捕获每个单独实体周围的上下文信息，并且可能无法捕获这对span之间的依赖关系。我们还认为，在不同对之间的span共享上下文表示可能是次优的。
+
+下面重点说一下**关系模型**。
+
+![image-20220324214726187](./imgs/image-20220324214726187.png)
+
+简单地在两个实体的前后插入了开始和结束标签，仅用2个实体前的标签就能获得很好的效果，也说明了实体的类型对于两个实体之间的关系判断很重要。
+
+实体可能是多个token组成，加前后标签的目的其实是给出了实体的范围，同时是加入了实体的类型信息。经过模型的fine-tune后，的embedding代表实体MORPA，而的embedding则表示另外一个实体parser。将实体和两个变量串接后进行softmax即可得到两个实体间的关系。
+
+**注入类型信息很重要**。
+
+另外本文使用了跨句子的特征信息。本文使用跨距信息的做法：将本句子的前后句文本也作为特征用进了模型, 具体的做法是: 在前一句和后一句中分别截出 (W - n)/2个文本拼接到本句的前后以丰富文本的信息, 其中 n 是本句的长度, W 是采用的固定值100。
+
+**batch计算的技巧**：
+
+如果句子中有多个实体对需要判断关系, 如果处理?
+
+句子有三个实体: 实体1 morpa, 实体2 parser, 实体3 text-to-speech, 要判断实体1和实体2的关系, 实体1和实体3的关系, 为了一次性判断两个实体对之间的关系, 没有在句中的三个实体的前后插入开始和结束标签, 而是统一放在句末, 标签的顺序是:
+<S:Md></S:Md><O:Md></O:Md> <S:Md></S:Md><O:Tk></O:Tk>
+
+值得注意的是: 实体1 参与了两次的关系判断,分别与实体2 和实体3, 在实体1的标签出现了两次
+
+那么现在问题是: <S:Md> 和</S:Md> 是如何标记实体1在句中的位置的以及实体的长度??
+
+![](https://pic2.zhimg.com/80/v2-45e1d4dd887b01a9094b5085c854d0f9_720w.jpg)
+
+本文中定义了标签的位置向量, 并且进一步定义了句子中各部分在transformer中参与attention.
+
+![](https://pic3.zhimg.com/80/v2-445bd2cafa5242bb9dc63cbc112bad42_720w.jpg)
+
+假设batch = 3 , 即一次性处理三个句子, 三个句子需要pad 补齐. 在代码中处理是:
+
+根据上图中每部分的attention, 在bert中的处理方式如下:
+
+目前我们应用bert最多的就是给出word_ids, 得到bert输出的句子中的每个token的向量,如下所示:
+
+```python
+last_hidden_states = bert_model(word_ids)[0]  # Models outputs are now tuples
+```
+
+但在本文中涉及了positionids 和 mask_ids,
+
+类BertModel的forward函数中, 有两个参数position_ids *和 attention_mask*
+
+```python
+def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+        encoder_hidden_states=None,
+        encoder_attention_mask=None,
+        past_key_values=None,
+        use_cache=None,
+        output_attentions=None,
+        output_hidden_states=None,
+        return_dict=None,
+    ):
+```
+
+在源码中 position_ids的设计是:
+
+```python
+position_ids = torch.arange(seq_length, dtype=torch.long, device=device)
+```
+
+词序列的位置从0开始, 遇到实体的标签则更改成实体的位置即可(开始标签的位置是实体的第一个词的位置, 结束标签的位置是实体最后一个词的位置)
+
+mask_ids 的设计是:
+
+![](https://pic1.zhimg.com/80/v2-d827d24d88c6f7e1c2dcf781b89a1a0c_1440w.jpg)
+
+```python
+last_hidden_states = bert_model(word_ids, attention_mask, position_ids)[0]
+```
+
+因为原论文没有给出源码, 这些都是自己的想法, 假设batch = 2, 两个句子中需要判断关系的实体对个数不一致, 无需将句子对个数补齐, 下图是关于两个句子的attention*mask的设计, 再传入bert_model之前, 需要将两个attention_mask在0维上串接,*
+
+![](https://pic2.zhimg.com/80/v2-b84441be183afef12ab09f70efcd9539_1440w.jpg)
+
+关于为什么pipline不如Joint的好, 这些问题可以在参考文献中别的大牛对于该篇文章的解读
+
+每次看源码总是有收获, 以后要经常多看多想多思:
+
+(1) 首先是包 allennlp, 在今年过年的时候大概想要实现的功能就是batch_*index_select, 费劲周折才有所得, 结果, 在allennlp中已经实现啦, 看来要好好研究下, 看看都实现了哪些功能, 这样下次用起来就方便多了*
+
+`from allennlp.nn.util import batched_index_select`
+
+(2) 竟然没发现tensor 也可以zip
+
+```python
+## sequence_ouput 的shape[batch, seq_length, 768], 
+## sub_idx 的shape是[batch, 1], 最后在0维上进行拼接(即batch), zip也是在batch上遍历
+sub_output = torch.cat([a[i].unsqueeze(0) for a, i in zip(sequence_output, sub_idx)])
+obj_output = torch.cat([a[i].unsqueeze(0) for a, i in zip(sequence_output, obj_idx)])
+```
+
+参考：https://zhuanlan.zhihu.com/p/349990920
 
 ## 其他
+
+
 
 
 
