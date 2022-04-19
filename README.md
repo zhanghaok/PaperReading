@@ -662,7 +662,7 @@ last_hidden_states = bert_model(word_ids, attention_mask, position_ids)[0]
 
 ![](https://pic2.zhimg.com/80/v2-b84441be183afef12ab09f70efcd9539_1440w.jpg)
 
-关于为什么pipline不如Joint的好, 这些问题可以在参考文献中别的大牛对于该篇文章的解读
+关于为什么pipeline不如Joint的好, 这些问题可以在参考文献中别的大牛对于该篇文章的解读
 
 每次看源码总是有收获, 以后要经常多看多想多思:
 
@@ -680,6 +680,154 @@ obj_output = torch.cat([a[i].unsqueeze(0) for a, i in zip(sequence_output, obj_i
 ```
 
 参考：https://zhuanlan.zhihu.com/p/349990920
+
+### UNIRE: A Unified Label Space for Entity Relation Extraction(ACL2021)
+
+> 为实体分类和关系分类建立一个统一的标签空间。
+
+**切入点**：当前许多联合模型为2个子任务设置了了两个独立的标签空间，这会阻碍实体和关系之间的信息交互。
+
+
+
+
+
+### HiCLRE: A Hierarchical Contrastive Learning Framework for Distantly Supervised Relation Extraction(ACL2022)
+
+**大背景**：关系提取需要大量注释数据，DSER（远程监督关系抽取）尝试自动生成训练样本，这种方式会带来噪声数据，可能会损害模型性能。
+
+>补充：Distant Supervision. 大多数supervised的关系抽取方法需要大规模的标注数据，这是非常昂贵的，而distant supervision是一种有效率的方法可以自动生成大规模训练数据。假设：如果两个实体在KG中存在关系，那么所有提到这些实体的句子都表达了这种关系。这种假设并不适合所有的场合并且容易造成错误标注的问题。
+>举例：所有含有中国和北京的句子，全都假设说的是“*北京是中国的首都“*。然后把这些句子全都提取出来作为首都这个关系的训练语料，直接批量打个标签。然后把一个关系对应的所有句子打个包，称作一个bag,一个bag一个标签（多示例学习）。反例：“*中国的面积比北京的面积大“。*
+
+#### 摘要：
+
+先前远程监督关系抽取任务，主要单独地关注句子级别或袋级别的去噪技术，忽视了跨层之间的交互。
+
+#### 先前工作：
+
+句子级别：旨在从输入句子的内部语义找出正确的关系标签；
+
+bag级：这三篇工作同时考虑了句子级和bag级的信息，但是忽略了两者之间的交互信息，该交互信息可以有效提高远程 监督关系抽取任务的性能。
+
+
+
+<center>    <img style="border-radius: 0.3125em;    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"     src="https://pic3.zhimg.com/80/v2-e57ca47837ea8290c6192dedf51676c6_1440w.jpg">    <br>    <div style="color:orange; border-bottom: 1px solid #d9d9d9;    display: inline-block;    color: #999;    padding: 2px;">特定-level和跨-level的语义关系示例。“红叉”表示两个bag-level关系的语义差异，“虚线箭头”表示cross-level关系的语义重叠。</div> </center>
+
+
+
+#### 方法：
+
+
+
+<center>    <img style="border-radius: 0.3125em;    box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"     src="./imgs/image-20220419194033379.png">    <br>    <div style="color:orange; border-bottom: 1px solid #d9d9d9;    display: inline-block;    color: #999;    padding: 2px;">左边的部分是我们的模型架构，右边的部分显示了伪阳性样本构建和多粒度上下文化的细节</div> </center>
+
+
+
+**输入**：
+
+- 每个句bag包含n个句子$B_{j}=\left(S_{1 j}, S_{2 j}, \ldots, S_{n j}\right)$
+
+- 每个句子包括确定的tokens ![[公式]](https://www.zhihu.com/equation?tex=S_%7Bij%7D+%3D+%28t_%7Bi1%7D%2Ct_%7Bi2%7D%2C...%2Ct_%7Bik%7D%29)
+
+**输出**：
+
+- 旨在从关系集合中预测bag Bj 的关系rj
+
+**模型结构**：
+
+- Multi-Granularity Recontextualization：旨在融合cross levels之间的重要性来决定在目标层应该提取什么有价值的表示；
+- Dynamic Gradient Adversarial Perturbation：旨在为特定层通过构建伪证例增强内部语义；
+
+##### 1.分层学习模型
+
+- 实体表示，利用实体和CLS拼接得到的句子表示，句子表示和注意力得到的Bag表示；
+- 利用Bag表示进行推理，计算DSRE损失；
+- 基于注意力机制，分别将实体、句子和Bag与QKV进行交换对应，得到对应的增强表示；
+- 利用梯度下降以及训练时间表示的变化分别得到 实体增强正样本、句子增强证样本、以及bag增强正样本，并计算三个对比损失；
+
+**句子表示**
+
+头实体尾实体和CLS的拼接
+
+![img](https://pic4.zhimg.com/80/v2-007b9758d95526f32afb89f2014aae8b_720w.jpg)
+
+**bag表示**
+
+对句子表示上利用注意力机制，求得Bag表示，最后用bag表示预测关系
+
+![img](https://pic4.zhimg.com/80/v2-244002f0acf2f9951e7ab4d1bcd72b73_720w.jpg)
+
+![img](https://pic2.zhimg.com/80/v2-1ca449415a7b335dc50de7360a4d0111_720w.jpg)
+
+![img](https://pic3.zhimg.com/80/v2-06ac4392a4fe085854e96d5c3440c972_720w.jpg)
+
+利用Bj表示进行推理：
+
+![img](https://pic2.zhimg.com/80/v2-5f01c8fcfb69f9238c180ac374da13cd_720w.jpg)
+
+DSRE任务的关系分类目标函数：
+
+![img](https://pic4.zhimg.com/80/v2-579a167b8c3a593c1bfa79edb9eea003_720w.jpg)
+
+##### 2.Multi-Granularity Recontextualization （多粒度语境重构）
+
+本质：利用目标level和其他两个level之间表示的多头注意力替换之前的多头自注意力。
+
+具体来说就是对应多头注意力机制Att (Q,K,V)：例如，**对于计算基于注意力的bag表示**，bag-level表示作为value，sentence-level表示作为key，entity-level作为query，最终得到增强的bag-level表示：
+
+![img](https://pic2.zhimg.com/80/v2-22bd7753847b4b66471fa610ea6231ed_720w.jpg)
+
+![img](https://pic2.zhimg.com/80/v2-39c146af71af098f7759858fa7fe5d51_720w.jpg)
+
+
+接下来，我们将增强的目标级别表示与原始的层次隐藏状态连接起来，得到重构的Bag-level表示：
+
+![img](https://pic4.zhimg.com/80/v2-5d7097ace9b75c21dc15bdf70a2075ff_720w.jpg)
+
+在接下来的计算过程中，我们利用三层增强表示 ![[公式]](https://www.zhihu.com/equation?tex=h_%7Be_%7Batt_j%7D%7D) 、![[公式]](https://www.zhihu.com/equation?tex=h_%7BS_%7Batt_j%7D%7D),![[公式]](https://www.zhihu.com/equation?tex=h_%7BB_%7Batt_j%7D%7D)替换分层隐藏表示。
+
+##### 3.Dynamic Gradient Adversarial Perturbation （动态梯度对抗扰动）
+
+除了考虑跨级别的交互，**levels内细粒度关系的语义差异**也可以帮助模型进一步增强上下文感知的表示。我们为对比学习构建了伪阳性样本来排除不相似的关系。由于特定层次梯度的变化和更好的上下文感知语义可以提高鲁棒性表示，我们分别设计了梯度扰动和惯性权重记忆机制.
+
+ **Gradient Perturbation**
+
+![img](https://pic2.zhimg.com/80/v2-5a5958353f2fe8dccf07f029f4d64401_720w.jpg)
+
+**Inertia Weight Memory**
+
+随着训练epoch的增加，我们利用不同粒度的时间序列信息进一步提高内部语义的鲁棒性。具体来说，我们在扰动项上加入惯性权重信息，这利用了上次epoch和当前表示的差异：
+
+![img](https://pic3.zhimg.com/80/v2-5ccc6e17a73604f2ea490381cbe38c5e_720w.jpg)
+
+其中T是训练过程的总epoch数，u是当前epoch索引。 ![[公式]](https://www.zhihu.com/equation?tex=rep+%28u%29) 可以分别表示第u epoch的实体表示、句子表示或Bag表示。Rep是一个以元素索引的顺序保存语义记忆的嵌入矩阵，在训练过程中从第二个epoch开始更新。
+
+然后，我们将惯性重量信息与袋级的梯度摄动相结合：
+
+![img](https://pic2.zhimg.com/80/v2-65a82e180784c6f3a4baa08d78fc47f5_720w.jpg)
+
+- 伪正样本： ![[公式]](https://www.zhihu.com/equation?tex=h_%7BB_j%7D%27+%3D+h_%7BB_j%7D+%2Bpt_%7Badv_j%7D) ；
+- 负样本：在batch中随机抽取一个bag；
+
+InfoNCE损失：
+
+![img](https://pic4.zhimg.com/80/v2-5b7bc42273f3a6d7452980820aac4e73_720w.jpg)
+
+##### 4.Training Objective
+
+![img](https://pic2.zhimg.com/80/v2-660efa7fb673de5ba8956f5f5ac118e5_720w.jpg)
+
+#### 实验结果
+
+![img](https://pic1.zhimg.com/80/v2-14d361e9a547399e4380d1cfea289d3c_720w.jpg)
+
+![img](https://pic1.zhimg.com/80/v2-91bd247079ece0516a234732b8c69e84_720w.jpg)
+
+#### 总结
+
+> 针对Distantly supervised relation extraction任务，作者提出对entity、sentence、和 bag三个表示学习层面分别建模，基于multi-head self-attention来学习层间交互信息，并利用动态基于gradient的数据增强策略生成正样本，学习更好的层内信息，并在实验上证明了方法的有效性。
+
+
+
 
 ## 其他
 
