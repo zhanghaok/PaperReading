@@ -19,12 +19,36 @@
   - [统一命名实体识别或同时嵌套+常规实体识别](#统一命名实体识别或同时嵌套常规实体识别)
     - [**W2NER**：**Unified Named Entity Recognition as Word-Word Relation Classification AAAI2022.**](#w2nerunified-named-entity-recognition-as-word-word-relation-classification-aaai2022)
     - [Parallel Instance Query Network for Named Entity Recognition(ACL2022)](#parallel-instance-query-network-for-named-entity-recognitionacl2022)
+  - [小样本（低资源）实体识别](#小样本低资源实体识别)
+    - [Example-Based Named Entity Recognition(*2020)](#example-based-named-entity-recognition2020)
   - [实体和关系联合抽取&关系抽取](#实体和关系联合抽取关系抽取)
     - [**TPLinker:Single-stage Joint Extraction of Entities and Relations Through Token Pair Linking. CLONG2020.**](#tplinkersingle-stage-joint-extraction-of-entities-and-relations-through-token-pair-linking-clong2020)
     - [CasRel:A Novel Cascade Binary Tagging Framework for Relational Triple Extractio (ACl2020)](#casrela-novel-cascade-binary-tagging-framework-for-relational-triple-extractio-acl2020)
     - [OneRel: Joint Entity and Relation Extraction with One Module in One Step (AAAI2022)](#onerel-joint-entity-and-relation-extraction-with-one-module-in-one-step-aaai2022)
     - [R-BERT:Enriching Pre-trained Language Model with Entity Information for Relation Classification  (ACL2019)](#r-bertenriching-pre-trained-language-model-with-entity-information-for-relation-classification--acl2019)
+    - [A Frustratingly Easy Approach for Joint Entity and Relation Extraction(NNACL2021)](#a-frustratingly-easy-approach-for-joint-entity-and-relation-extractionnnacl2021)
+    - [UNIRE: A Unified Label Space for Entity Relation Extraction(ACL2021)](#unire-a-unified-label-space-for-entity-relation-extractionacl2021)
+    - [HiCLRE: A Hierarchical Contrastive Learning Framework for Distantly Supervised Relation Extraction(ACL2022)](#hiclre-a-hierarchical-contrastive-learning-framework-for-distantly-supervised-relation-extractionacl2022)
+      - [摘要：](#摘要)
+      - [先前工作：](#先前工作)
+      - [方法：](#方法)
+        - [1.分层学习模型](#1分层学习模型)
+        - [2.Multi-Granularity Recontextualization （多粒度语境重构）](#2multi-granularity-recontextualization-多粒度语境重构)
+        - [3.Dynamic Gradient Adversarial Perturbation （动态梯度对抗扰动）](#3dynamic-gradient-adversarial-perturbation-动态梯度对抗扰动)
+        - [4.Training Objective](#4training-objective)
+      - [实验结果](#实验结果)
+      - [总结](#总结)
+    - [PRGC: Potential Relation and Global Correspondence Based Joint Relational Triple Extraction(ACL2021)](#prgc-potential-relation-and-global-correspondence-based-joint-relational-triple-extractionacl2021)
+      - [摘要](#摘要-1)
+      - [前人工作总结](#前人工作总结)
+      - [解决步骤](#解决步骤)
+        - [1.主题思想](#1主题思想)
+        - [2. 模型的工作流程](#2-模型的工作流程)
+        - [3.三个子任务的详细介绍](#3三个子任务的详细介绍)
+        - [5.一句话总结PRGC](#5一句话总结prgc)
+      - [实验结果](#实验结果-1)
   - [其他](#其他)
+
 
 
 
@@ -826,6 +850,89 @@ InfoNCE损失：
 
 > 针对Distantly supervised relation extraction任务，作者提出对entity、sentence、和 bag三个表示学习层面分别建模，基于multi-head self-attention来学习层间交互信息，并利用动态基于gradient的数据增强策略生成正样本，学习更好的层内信息，并在实验上证明了方法的有效性。
 
+### PRGC: Potential Relation and Global Correspondence Based Joint Relational Triple Extraction(ACL2021)
+
+基于潜在关系和全局对应的联合关系三元组抽取
+
+>关系重叠概念阐述：
+>
+>Single Entity Overlap (SEO) 单一实体重叠
+>Entity Pair Overlap (EPO) 实体对重叠 ：即一个实体对之间存在着多种关系
+>Subject Object Overlap (SOO) 主客体重叠 ：既是主体，又是客体
+
+![img](https://pic2.zhimg.com/80/v2-3a96dedf3fb664d415d3bdddde9d3ac1_720w.jpg)
+
+#### 摘要
+
+前人工作的局限性：1.关系预测的冗余性。2.基于跨度的泛化能力差。3.效率低。提出了文本的方法，本文以一种新的角度将关系抽取任务分解为三个子任务：**关系判断、实体抽取和主宾对齐**。模型分别对应于三个模块：预测潜在的关系子集的组件，一个特定于关系的序列标注组件，一个全局对应组件。
+
+#### 前人工作总结
+
+目前的方法虽然取得了相当好的效果，但是存在一些固有的**局限性**，如：
+
+1.关系预测的冗余性：传统的 **pipeline** 方法 都是先抽实体再抽关系，存在关系冗余问题。
+
+2.基于跨度的提取泛化能力差。
+
+3.效率低下。
+
+
+
+以前的方法多任务方法**CasRel**：
+
+>将关系三元组提取分为两个阶段，把object实体对应所有关系。这种方法包含很多不合法的操作，**span-based**的抽取策略只关注实体的起始和结束位置，扩展性不好。
+>由于其**subject-object**对齐机制，一次只能处理一个subject，效率低下，部署难度大 。
+
+更进一步的有单步解码方法**TPLinker**:
+
+>为了克服subject-object对齐时的偏差，它利用了一个相当复杂的解码器，导致标签稀疏和收敛速度低，而基于跨度的提取的关系冗余和泛化性差的问题仍未解决。
+
+![img](https://pic3.zhimg.com/80/v2-0cc4aa2b899eb6bd63f31a6f57ea666a_720w.jpg)
+
+#### 解决步骤
+
+##### 1.主题思想
+
+本文将该任务为三个子任务，即**关系判断、实体提取、主宾语对齐**三个子任务，提出了一种基于**潜在关系和全局对应**的**联合关系三元组**提取框架（PRGC）。
+
+三个子任务，分别对应图中的三个组件：
+
+1. 关系判断（Relation Judgement）：（橙色虚线）Potential Relation Prediction
+2. 实体提取（Entity Extraction）：（蓝色虚线）Relation-Specific Sequence Taggers
+3. 主宾语对齐（Subject-object Alignment）：（绿色虚线）Global Correspondence
+
+![](./imgs/PRGC.png)
+
+##### 2. 模型的工作流程
+
+> 1.首先是输入的句子进行BERT编码，得到h；
+>
+> 2.这时候同时执行两个操作，即图中的绿色部分和橙色部分：
+>
+> &nbsp;1)绿色部分表示全局对应关系矩阵，是个n*n的矩阵，表示两个位置之间的主宾语之间的关系，有关系的为1，没有关系的为0；
+>
+> &nbsp;2)橙色部分是预测潜在的关系，是个长度为nr的向量，表示所有关系的状态，标记1表示是这个句子中可能存在的关系，0表示不是这个句子中可能存在的关系。
+>
+> 3.然后针对已经提取出来的潜在关系以及句子编码h，执行途中蓝色虚线部分的任务，针对可能存在的m个关系中的每个关系，都计算出该关系对应的主语和宾语实体标记（BIO），可能存在多个，得到一个序列表。
+>
+> 4.所以我们现在数数我们有什么，我们有实体关系矩阵表，潜在的关系表，全局对应表；然后对于这三个输出对照标签数据计算他们的交叉熵损失加权求和就是最终的总损失
+
+##### 3.三个子任务的详细介绍
+
+*n* 是句子序列中的 tokens 的个数，*nr*表示所有的关系的个数，*m*的是指潜在的关系的个数。
+
+![preview](https://pic2.zhimg.com/v2-7fad2903f085b866783df0104d023871_r.jpg)
+
+##### 5.一句话总结PRGC
+
+> 1. PRGC首先预测一个**潜在关系子集（ potential relations）**和一个包含所有主客体之间的对应分数的**全局矩阵（global matrix）**;
+>
+> 2. 然后进行**序列标记（sequence tagging）**，并行提取每个具有潜在关系的**主体和客体**；
+> 3. 最后列举所有预测的实体对，用**全局对应矩阵（ global correspondence matrix）**进行**剪枝。**
+
+#### 实验结果
+
+![](./imgs/PRGCExp.png)
 
 
 
