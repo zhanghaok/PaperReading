@@ -1134,20 +1134,19 @@ $$
 
 过程和Template-Based Named Entity Recognition Using BART类似，参考之即可。
 $$
-H_{e n}=\operatorname{Encoder}(X)\\
+H_{e n}=\operatorname{Encoder}(X);\tilde{y}_{i}= \begin{cases}X_{y_{i}}, & \text { if } y_{i} \text { is a pointer index } \\ C_{y_{i}-n}, & \text { if } y_{i} \text { is a class index }\end{cases}
+$$
 
-\tilde{y}_{i}= \begin{cases}X_{y_{i}}, & \text { if } y_{i} \text { is a pointer index } \\ C_{y_{i}-n}, & \text { if } y_{i} \text { is a class index }\end{cases}\\
+$$
+h_{t}=\operatorname{Decoder}\left(H_{e n} ; \tilde{y}_{i=1}^{t-1}\right)
+$$
 
-h_{t}=\operatorname{Decoder}\left(H_{e n} ; \tilde{y}_{i=1}^{t-1}\right)\\
+$$
+E_{s e q} =\text { WordEmbed }(X) ;\tilde{H}_{e n} =\alpha \cdot H_{e n}+(1-\alpha) \cdot E_{s e q};\\
+$$
 
-\begin{equation}
-\begin{aligned}
-E_{s e q} &=\text { WordEmbed }(X), \\
-\tilde{H}_{e n} &=\alpha \cdot H_{e n}+(1-\alpha) \cdot E_{s e q}, \\
-p_{s e q} &=\tilde{H}_{e n} \otimes h_{t}, \\
-p_{t} &=\operatorname{Softmax}\left(\left[p_{s e q} ; p_{t a g}\right]\right), 
-\end{aligned}
-\end{equation}
+$$
+p_{s e q} =\tilde{H}_{e n} \otimes h_{t};p_{t}=\operatorname{Softmax}\left(\left[p_{s e q} ; p_{t a g}\right]\right),
 $$
 
 - [x] 为提示学习构建语义感知的答案空间
@@ -1156,10 +1155,11 @@ $$
 
 **A**:现有研究（Liu等人，2021c；Le Scao和Rush，2021）表明，answer工程对“提示-微调”的性能有很大影响。对于NER中实体类别的预测，添加表示不同实体类型的额外*标签特定*的参数将阻碍快速学习的适用性，并损害低资源NER中类间的知识转移。同时，手动在词汇表中找到合适的标记来区分不同的实体类型也是一个挑战。 此外，某些实体类型在特定的目标域中可能很长或很复杂，例如return_date。TIS中的month_name和MIT restaurant中的restaurant_name。 **为了解决上述问题，我们构建了包含与每个实体类相关的多个标签词的语义感知的答案空间**，并利用加权平均方法答案空间V。具体而言，我们定义了从实体类别C的标签空间到语义感知答案空间V的映射M，即$\mathcal{M}: \mathcal{C} \mapsto \mathcal{V}$.我们使用$V_c$表示V的子集，该子集由特定的实体类型c映射，$\cup_{c \in \mathcal{C}} \mathcal{V}_{c}=\mathcal{V}$。以上述c1=“return_date.month_name”为例，我们根据c1的分解定义Vc1={“return”、“date”、“month”、“name”）。由于直接平均函数可能存在偏差，我们采用可学习权重α对答案空间中标签词的logit进行平均，作为预测logit :
 $$
-\begin{gathered}
-E_{\operatorname{tag}}=\text { WordEmbed }(\mathcal{M}(\mathcal{C})) \\
+E_{\operatorname{tag}}=\text { WordEmbed }(\mathcal{M}(\mathcal{C}))
+$$
+
+$$
 p_{\text {tag }}=\text { Concat }\left[\sum_{v \in \mathcal{V}_{c}} \alpha_{v}{ }^{c} * E_{\text {tag }}^{c} \otimes h_{t}\right]
-\end{gathered}
 $$
 $\alpha_{v}{ }^{c}$表示实体类型c的权重。<font color="#6660000">**通过构建语义感知的答案空间，LightNER可以在不修改PLM的情况下感知实体类别中的语义知识**</font>。 
 
