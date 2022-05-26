@@ -1125,7 +1125,9 @@ InfoNCE损失：
 
 - [x] 任务构建
 
-输入序列：$$ X={x_1,x_2,...,x_n}.$$NER任务旨在提供实体范围的开始索引和结束索引，以及实体类型，在我们的框架中分别由e、t表示。其中e是token的索引，$t \in\{$ person, organization，..., $\}$。在我们的生成框架中，目标序列Y由多基预测$ p_{i}=\left\{e_{i}^{\text {start }}, e_{i}^{\text {end }}, t_{i}\right\} $和$Y=\left\{p_{1}, p_{2}, \ldots, p_{n}\right\}$组成。 给定令牌序列X，条件概率计算如下：
+输入序列：$$ X={x_1,x_2,...,x_n}.$$NER任务旨在提供实体范围的开始索引和结束索引，以及实体类型，在我们的框架中分别由e、t表示。其中e是token的索引，$t \in\{$ person, organization，..., $\}$。在我们的生成框架中，目标序列Y由多基预测![image-20220526105103898](./imgs/light-for4.png)组成。 
+
+给定令牌序列X，条件概率计算如下：
 $$
 P(Y \mid X)=\prod_{t=1}^{n} p\left(y_{t} \mid X, y_{0}, y_{1}, \ldots, y_{t-1}\right)
 $$
@@ -1133,34 +1135,16 @@ $$
 - [x] 生成框架
 
 过程和Template-Based Named Entity Recognition Using BART类似，参考之即可。
-$$
-H_{e n}=\operatorname{Encoder}(X)
-$$
-$$
-\tilde{y}_{i}= \begin{cases}X_{y_{i}}, & \text { if } y_{i} \text { is a pointer index } \\ C_{y_{i}-n}, & \text { if } y_{i} \text { is a class index }\end{cases}
-$$
-$$
-h_{t}=\operatorname{Decoder}\left(H_{e n} ; \tilde{y}_{i=1}^{t-1}\right)
-$$
-$$
-E_{\text {seq }}=\text { WordEmbed }(X) ; \tilde{H}_{e n}=\alpha \cdot H_{e n}+(1-\alpha) \cdot E_{\text {seq }}
-$$
-$$
-p_{s e q}=\tilde{H}_{e n} \otimes h_{t}
-$$
-$$
-p_{t}=\operatorname{Softmax}\left(\left[p_{\text {seq }} ; p_{\text {tag }}\right]\right)
-$$
 
-
-
-
+![image-20220526105009135](./imgs/light-for2.png)
 
 - [x] 为提示学习构建语义感知的答案空间
 
 **Q**:为何要构建？前人的基于特定类别的有何缺点？
 
-**A**:现有研究（Liu等人，2021c；Le Scao和Rush，2021）表明，answer工程对“提示-微调”的性能有很大影响。对于NER中实体类别的预测，添加表示不同实体类型的额外*标签特定*的参数将阻碍快速学习的适用性，并损害低资源NER中类间的知识转移。同时，手动在词汇表中找到合适的标记来区分不同的实体类型也是一个挑战。 此外，某些实体类型在特定的目标域中可能很长或很复杂，例如return_date。TIS中的month_name和MIT restaurant中的restaurant_name。 **为了解决上述问题，我们构建了包含与每个实体类相关的多个标签词的语义感知的答案空间**，并利用加权平均方法答案空间V。具体而言，我们定义了从实体类别C的标签空间到语义感知答案空间V的映射M，即$\mathcal{M}: \mathcal{C} \mapsto \mathcal{V}$.我们使用$V_c$表示V的子集，该子集由特定的实体类型c映射，$\cup_{c \in \mathcal{C}} \mathcal{V}_{c}=\mathcal{V}$。以上述c1=“return_date.month_name”为例，我们根据c1的分解定义Vc1={“return”、“date”、“month”、“name”）。由于直接平均函数可能存在偏差，我们采用可学习权重α对答案空间中标签词的logit进行平均，作为预测logit :$$E_{\operatorname{tag}}=\text { WordEmbed }(\mathcal{M}(\mathcal{C}));p_{\text {tag }}=\text { Concat }\left[\sum_{v \in \mathcal{V}_{c}} \alpha_{v}{ }^{c} * E_{\text {tag }}^{c} \otimes h_{t}\right]$$.
+**A**:现有研究（Liu等人，2021c；Le Scao和Rush，2021）表明，answer工程对“提示-微调”的性能有很大影响。对于NER中实体类别的预测，添加表示不同实体类型的额外*标签特定*的参数将阻碍快速学习的适用性，并损害低资源NER中类间的知识转移。同时，手动在词汇表中找到合适的标记来区分不同的实体类型也是一个挑战。 此外，某些实体类型在特定的目标域中可能很长或很复杂，例如return_date。TIS中的month_name和MIT restaurant中的restaurant_name。 **为了解决上述问题，我们构建了包含与每个实体类相关的多个标签词的语义感知的答案空间**，并利用加权平均方法答案空间V。具体而言，我们定义了从实体类别C的标签空间到语义感知答案空间V的映射M，即![image-20220526105219767](./imgs/light-for5.png)我们使用$V_c$表示V的子集，该子集由特定的实体类型c映射，$\cup_{c \in \mathcal{C}} \mathcal{V}_{c}=\mathcal{V}$。以上述c1=“return_date.month_name”为例，我们根据c1的分解定义Vc1={“return”、“date”、“month”、“name”)。由于直接平均函数可能存在偏差，我们采用可学习权重α对答案空间中标签词的logit进行平均，作为预测logit :
+
+![image-20220526104934761](./imgs/light-for1.png)
 
 $\alpha_{v}{ }^{c}$表示实体类型c的权重。<font color="#6660000">**通过构建语义感知的答案空间，LightNER可以在不修改PLM的情况下感知实体类别中的语义知识**</font>。 
 
@@ -1177,11 +1161,8 @@ $\alpha_{v}{ }^{c}$表示实体类型c的权重。<font color="#6660000">**通�
 LightNER继承了transformer的架构，它是一堆相同的构建块，用前馈网络、剩余连接和层规范化包裹起来。作为一个特定组件，我们在原始query\key\value层上引入了提示引导注意层，以实现灵活有效的提示调整。 
 
 给定一个输入标记序列X={x1，x2，…，xn}，按照上述公式，我们可以将提示的表示与自我注意的计算合并到X中。在每个层l中，输入序列表示$X^l∈ R^d$首先投影到query\key\value向量中 :
-$$
-\boldsymbol{Q}^{l}=\boldsymbol{X}^{l} \boldsymbol{W}^{Q}, \boldsymbol{K}^{l}=\boldsymbol{X}^{l} \boldsymbol{W}^{K}, \boldsymbol{V}^{l}=\boldsymbol{X}^{l} \boldsymbol{W}^{V}\\
 
-\text { Attention }^{l}=\operatorname{softmax}\left(\frac{Q^{l}\left[\boldsymbol{K}^{l} ; \boldsymbol{\phi}_{k}^{l}\right]^{T}}{\sqrt{d}}\right)\left[\boldsymbol{V} ; \phi_{v}^{l}\right]
-$$
+![image-20220526105259174](./imgs/light-for6.png)
 
 
 所提出的提示引导注意可以根据提示词重新调节注意的分布。因此，该模型得益于提示的指导 .
