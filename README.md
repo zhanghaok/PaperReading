@@ -1134,7 +1134,11 @@ $$
 
 过程和Template-Based Named Entity Recognition Using BART类似，参考之即可。
 $$
-H_{e n}=\operatorname{Encoder}(X);\tilde{y}_{i}= \begin{cases}X_{y_{i}}, & \text { if } y_{i} \text { is a pointer index } \\ C_{y_{i}-n}, & \text { if } y_{i} \text { is a class index }\end{cases}
+H_{e n}=\operatorname{Encoder}(X);
+$$
+
+$$
+\tilde{y}_{i}= \begin{cases}X_{y_{i}}, & \text { if } y_{i} \text { is a pointer index } \\ C_{y_{i}-n}, & \text { if } y_{i} \text { is a class index }\end{cases}
 $$
 
 $$
@@ -1142,12 +1146,18 @@ h_{t}=\operatorname{Decoder}\left(H_{e n} ; \tilde{y}_{i=1}^{t-1}\right)
 $$
 
 $$
-E_{s e q} =\text { WordEmbed }(X) ;\tilde{H}_{e n} =\alpha \cdot H_{e n}+(1-\alpha) \cdot E_{s e q};\\
+E_{s e q} =\text { WordEmbed }(X) ;\tilde{H}_{e n} =\alpha \cdot H_{e n}+(1-\alpha) \cdot E_{s e q}
 $$
 
 $$
-p_{s e q} =\tilde{H}_{e n} \otimes h_{t};p_{t}=\operatorname{Softmax}\left(\left[p_{s e q} ; p_{t a g}\right]\right),
+p_{s e q} =\tilde{H}_{e n} \otimes h_{t};
 $$
+
+$$
+p_{t}=\operatorname{Softmax}\left(\left[p_{s e q} ; p_{t a g}\right]\right)
+$$
+
+
 
 - [x] 为提示学习构建语义感知的答案空间
 
