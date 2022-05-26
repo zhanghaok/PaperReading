@@ -33,7 +33,7 @@
   - [低资源场景](#低资源场景)
     - [【综述】Knowledge Extraction in Low-Resource Scenarios: Survey and Perspective](#综述knowledge-extraction-in-low-resource-scenarios-survey-and-perspective)
     - [Template-Based Named Entity Recognition Using BART (ACL2021)](#template-based-named-entity-recognition-using-bart-acl2021)
-
+    - [LightNER: A Lightweight Generative Framework with Prompt-guided Attention for Low-resource NER(AAAI2022)](#lightner-a-lightweight-generative-framework-with-prompt-guided-attention-for-low-resource-ner-aaai2022)
 
 ## 常规命名实体识别
 
@@ -1099,3 +1099,120 @@ InfoNCE损失：
 
 - 当出现新的实体类别时,可以直接针对目标领域进行微调,这比基于序列标注的NER模型更强大
 - 在富资源任务上,取得了有竞争力的结果;在低资源跨领域NER任务上,明显优于序列标注和基于距离的方法
+
+### LightNER: A Lightweight Generative Framework with Prompt-guided Attention for Low-resource NER(AAAI2022)
+
+> 本文对模型（代码的改进）在复旦邱锡鹏团队“*A Unified Generative Framework for Various NER Subtasks*”
+>
+> 本文对前人的工作的改进是基于~“*Template-Based Named Entity Recognition Using BART*”的缺点进行创新的。
+
+**摘要**
+
+大多数现有的NER方法依赖于大量有标签的数据，这在训练数据有限的低资源场景中很难实现。最近，针对预训练语言模型的“提示+微调”的方法，利用提示作为任务知道来减少预训练任务和下游任务调整之间的gap，在少样本场景下取得了显著的效果。受到提示学习的启发，我们提出一种新的轻量级的生成框架，该框架具有提示引导的注意力机制用于低资源NER。具体而言，我们构建了语义感知的实体类别答案空间，以便在没有任何特定分类器的情况下快速生成实体span和实体类别。我们进一步提出了提示引导注意力机制，将连续的提示纳入到自注意力层，以便重新调节预训练的权重。请注意，我们只在预训练语言模型的整个参数固定的情况下调整这些连续提示，因此，我们的方法对于低资源场景来说是轻量级和灵活的，并且可以更好地跨域传递知识。实验结果表明，在标准监督设置下，LightNER可以获得相当的性能，在低资源设置下，只需调整一小部分参数，其性能就会优于强基线 。
+
+**前言**
+
+- BERT-分类器的方法不适用于不可见类，因此需要重新训练。
+- 原型网络方法减少了域适应的代价，然而这些方法主要侧重寻找最佳的超参数设置，以利用源域和目标域之间的相似模式，而不是更新NER的网络参数。
+- 基于提示学习的方法想去弥补下游任务和预训练语言模型之间的gap。
+- 直观的说：提示学习方法适应于小样本NER！
+- “*Template-Based Named Entity Recognition Using BART*”是第一个针对少样本NER提出基于BART构建模板的方法。但是这篇文章有2个不足之处：（1）手工构建的模板比较敏感。（2）计算复杂度高。需要枚举n-gram去填充构建的m个模板。
+- 因此针对上面2个不足提出了本文的idea（做成改进）。具体而言改进如下：（1）也是基于BART的seq2seq模型（这点不算改进，但是是优点可以解决不可见类的问题，不用重新构建特定的分类器）；（2）连续的提示表征向量可以学习，而不是手工构建的模板；（3）轻量级（计算复杂度低），不更新预训练语言模型的参数，只更新连续提示向量和答案空间的权重。
+
+**方法**
+
+![image-20220526100057456](./imgs/LightNER.png)
+
+- [x] 任务构建
+
+输入序列：$$ X={x_1,x_2,...,x_n}.$$NER任务旨在提供实体范围的开始索引和结束索引，以及实体类型，在我们的框架中分别由e、t表示。其中e是token的索引，$t \in\{$ person, organization，..., $\}$。在我们的生成框架中，目标序列Y由多基预测$p_{i}=\left\{e_{i}^{\text {start }}, e_{i}^{\text {end }}, t_{i}\right\}$和$Y=\left\{p_{1}, p_{2}, \ldots, p_{n}\right\}$组成。 给定令牌序列X，条件概率计算如下：
+$$
+P(Y \mid X)=\prod_{t=1}^{n} p\left(y_{t} \mid X, y_{0}, y_{1}, \ldots, y_{t-1}\right)
+$$
+
+- [x] 生成框架
+
+过程和Template-Based Named Entity Recognition Using BART类似，参考之即可。
+$$
+H_{e n}=\operatorname{Encoder}(X)\\
+
+\tilde{y}_{i}= \begin{cases}X_{y_{i}}, & \text { if } y_{i} \text { is a pointer index } \\ C_{y_{i}-n}, & \text { if } y_{i} \text { is a class index }\end{cases}\\
+
+h_{t}=\operatorname{Decoder}\left(H_{e n} ; \tilde{y}_{i=1}^{t-1}\right)\\
+
+\begin{equation}
+\begin{aligned}
+E_{s e q} &=\text { WordEmbed }(X), \\
+\tilde{H}_{e n} &=\alpha \cdot H_{e n}+(1-\alpha) \cdot E_{s e q}, \\
+p_{s e q} &=\tilde{H}_{e n} \otimes h_{t}, \\
+p_{t} &=\operatorname{Softmax}\left(\left[p_{s e q} ; p_{t a g}\right]\right), 
+\end{aligned}
+\end{equation}
+$$
+
+- [x] 为提示学习构建语义感知的答案空间
+
+**Q**:为何要构建？前人的基于特定类别的有何缺点？
+
+**A**:现有研究（Liu等人，2021c；Le Scao和Rush，2021）表明，answer工程对“提示-微调”的性能有很大影响。对于NER中实体类别的预测，添加表示不同实体类型的额外*标签特定*的参数将阻碍快速学习的适用性，并损害低资源NER中类间的知识转移。同时，手动在词汇表中找到合适的标记来区分不同的实体类型也是一个挑战。 此外，某些实体类型在特定的目标域中可能很长或很复杂，例如return_date。TIS中的month_name和MIT restaurant中的restaurant_name。 **为了解决上述问题，我们构建了包含与每个实体类相关的多个标签词的语义感知的答案空间**，并利用加权平均方法答案空间V。具体而言，我们定义了从实体类别C的标签空间到语义感知答案空间V的映射M，即$\mathcal{M}: \mathcal{C} \mapsto \mathcal{V}$.我们使用$V_c$表示V的子集，该子集由特定的实体类型c映射，$\cup_{c \in \mathcal{C}} \mathcal{V}_{c}=\mathcal{V}$。以上述c1=“return_date.month_name”为例，我们根据c1的分解定义Vc1={“return”、“date”、“month”、“name”）。由于直接平均函数可能存在偏差，我们采用可学习权重α对答案空间中标签词的logit进行平均，作为预测logit :
+$$
+\begin{gathered}
+E_{\operatorname{tag}}=\text { WordEmbed }(\mathcal{M}(\mathcal{C})) \\
+p_{\text {tag }}=\text { Concat }\left[\sum_{v \in \mathcal{V}_{c}} \alpha_{v}{ }^{c} * E_{\text {tag }}^{c} \otimes h_{t}\right]
+\end{gathered}
+$$
+$\alpha_{v}{ }^{c}$表示实体类型c的权重。<font color="#6660000">**通过构建语义感知的答案空间，LightNER可以在不修改PLM的情况下感知实体类别中的语义知识**</font>。 
+
+- [x] 提示引导的注意力机制
+
+“参数设置”
+
+具体而言，LightNER分别为编码器和解码器添加两组可训练的嵌入矩阵$\left\{\phi^{1}, \phi^{2}, \ldots, \phi^{N}\right\}$，并将transformer层数设置为N，其中$\phi_{\theta} \in \mathbb{R}^{2 \times|P| \times d}$（由θ参数化），| P |是提示的长度，d代表dim(ht)，2表示φ是为Key和Value设计的。在我们的方法中，LM参数是固定的，提示参数θ和α的可学习分布是唯一可训练的参数。 
+
+“提示引导的注意力层”
+
+![image-20220526100443183](./imgs/Prompt-attention.png)
+
+LightNER继承了transformer的架构，它是一堆相同的构建块，用前馈网络、剩余连接和层规范化包裹起来。作为一个特定组件，我们在原始query\key\value层上引入了提示引导注意层，以实现灵活有效的提示调整。 
+
+给定一个输入标记序列X={x1，x2，…，xn}，按照上述公式，我们可以将提示的表示与自我注意的计算合并到X中。在每个层l中，输入序列表示$X^l∈ R^d$首先投影到query\key\value向量中 :
+$$
+\boldsymbol{Q}^{l}=\boldsymbol{X}^{l} \boldsymbol{W}^{Q}, \boldsymbol{K}^{l}=\boldsymbol{X}^{l} \boldsymbol{W}^{K}, \boldsymbol{V}^{l}=\boldsymbol{X}^{l} \boldsymbol{W}^{V}\\
+
+\text { Attention }^{l}=\operatorname{softmax}\left(\frac{Q^{l}\left[\boldsymbol{K}^{l} ; \boldsymbol{\phi}_{k}^{l}\right]^{T}}{\sqrt{d}}\right)\left[\boldsymbol{V} ; \phi_{v}^{l}\right]
+$$
+
+
+所提出的提示引导注意可以根据提示词重新调节注意的分布。因此，该模型得益于提示的指导 .
+
+**实验结果**
+
+> 实验设置和*Template-Based Named Entity Recognition Using BART*的实验设置是基本保持一致的。
+
+- [x] 标准的监督场景NER（CoNLL03数据集）
+
+![image-20220526100950674](./imgs/light-table1.png)
+
+- [x] 域间少样本场景NER（CoNLL03数据集）
+
+![image-20220526101059185](./imgs/light-table2.png)
+
+MISC指标有误。
+
+- [x] 跨域少样本场景NER（MIT Movie、MIT Restaurant、ATIS）
+
+![image-20220526101242732](./imgs/light-table3.png)
+
+- [x] 消融实验
+
+![image-20220526101436848](./imgs/light-table4.png)
+
+
+- [x] 零样本场景
+
+![image-20220526101504225](./imgs/light-table5.png)
+
+**结论和未来工作**
+
+在本文中，我们提出了一种新的具有即时引导注意的生成框架（LightNER），它可以用很少的样本来识别看不见的实体。通过为PrompTuning构建实体类型的语义感知答案空间，LightNER可以保持一致的预训练和微调过程。同时，提示引导注意的设计可以更好地跨领域传递知识。我们的模型在参数方面是有效的，只需调整提示参数。实验结果表明，LightNER在资源丰富的情况下可以获得有竞争力的结果，在资源较少的情况下优于基线方法。<font color="#6660000">**未来，我们计划探索更复杂的方法来增强提示，并将我们的方法应用于低资源环境中的更多任务.**</font>。
+
