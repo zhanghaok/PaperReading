@@ -31,9 +31,6 @@
     - [HiCLRE: A Hierarchical Contrastive Learning Framework for Distantly Supervised Relation Extraction(ACL2022)](#hiclre-a-hierarchical-contrastive-learning-framework-for-distantly-supervised-relation-extractionacl2022)
     - [PRGC: Potential Relation and Global Correspondence Based Joint Relational Triple Extraction(ACL2021)](#prgc-potential-relation-and-global-correspondence-based-joint-relational-triple-extractionacl2021)
   - [低资源场景](#低资源场景)
-    - [【综述】Knowledge Extraction in Low-Resource Scenarios: Survey and Perspective](#综述knowledge-extraction-in-low-resource-scenarios-survey-and-perspective)
-    - [Template-Based Named Entity Recognition Using BART (ACL2021)](#template-based-named-entity-recognition-using-bart-acl2021)
-    - [LightNER: A Lightweight Generative Framework with Prompt-guided Attention for Low-resource NER(AAAI2022)](#lightner-a-lightweight-generative-framework-with-prompt-guided-attention-for-low-resource-ner-aaai2022)
 
 ## 常规命名实体识别
 
